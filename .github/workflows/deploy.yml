@@ -1,11 +1,9 @@
 name: RepliChain CI/CD
 
-# Trigger this workflow whenever code is pushed to the main branch
 on:
   push:
     branches: [ "main" ]
 
-# Give GitHub Actions permission to write to your repo (needed for tagging)
 permissions:
   contents: write
 
@@ -54,15 +52,11 @@ jobs:
       # Step 6 — Rollback to stable version if build fails
       - name: Rollback to stable version
         if: failure()
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "⚠️ Deployment failed — rolling back to last stable version..."
-          git fetch --tags
-
-          git fetch origin stable
-          git checkout stable
-          echo "✅ Rolled back to stable version"
+          git fetch --all --tags
+          git checkout tags/stable -f
+          echo "✅ Rolled back to stable version successfully!"
 
       # Step 7 — Cleanup (optional)
       - name: Clean up Docker containers
