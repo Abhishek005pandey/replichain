@@ -1,0 +1,55 @@
+name: RepliChain CI/CD
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1️⃣ Checkout the code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2️⃣ Set up Docker Buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 3️⃣ Build backend & frontend containers
+      - name: Build Docker images
+        run: |
+          docker build -t replichain-backend -f docker/Dockerfile.backend .
+          docker build -t replichain-frontend -f docker/Dockerfile.frontend .
+
+      # 4️⃣ Health check for backend
+      - name: Health check backend
+        run: |
+          echo "Running backend container health check..."
+          docker run -d --name backend replichain-backend
+          sleep 5
+          if ! docker logs backend | grep -q "Server running"; then
+            echo "❌ Deployment failed — rolling back..."
+            exit 1
+          fi
+          echo "✅ Backend is healthy"
+
+      # 5️⃣ Mark version as stable if build passed
+      - name: Tag stable version
+        if: success()
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git tag -f stable
+          git push origin stable --force
+          echo "✅ Stable version tagged"
+
+      # 6️⃣ Rollback if build fails
+      - name: Rollback to stable version
+        if: failure()
+        run: |
+          git fetch origin stable
+          git reset --hard stable
+          echo "🔁 Rolled back to last stable version"

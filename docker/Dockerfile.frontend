@@ -1,0 +1,20 @@
+# ---------- Frontend Dockerfile ----------
+FROM node:18
+
+WORKDIR /app
+
+# Copy package.json and package-lock.json from frontend folder
+COPY ../frontend/package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy all frontend source code
+COPY ../frontend .
+
+# Build the React app
+RUN npm run build
+
+# Expose port and serve built app
+EXPOSE 3000
+CMD ["npx", "serve", "-s", "build", "-l", "3000"]
